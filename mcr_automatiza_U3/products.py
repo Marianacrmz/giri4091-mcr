@@ -15,16 +15,30 @@ def GetProduct():
     
     product_id = input("Ingrese el ID del producto que desea consultar: ")
 
-    url = f"{url_base}/{product_id}"
-    response = requests.get(url)
-    
-    if response.status_code == 200:
-        producto = response.json()
-        print("Detalles del producto solicitado: ")
-        print("----------------------------------")
-        print(json.dumps(producto, indent=4, ensure_ascii=False))
-    else:
-        print("Hubo un error al obtener el producto", response.status_code)
+    try:
+        url = f"{url_base}/{product_id}"
+        response = requests.get(url)
+        response.raise_for_status()  # Lanza una excepción para códigos de estado 4xx/5xx
+        
+        if response.text:  # Verifica si la respuesta no está vacía
+            producto = response.json()
+            print("Detalles del producto solicitado: ")
+            print("----------------------------------")
+            print(json.dumps(producto, indent=4, ensure_ascii=False))
+        else:
+            print("Producto no encontrado.")
+    except requests.exceptions.HTTPError as http_err:
+        if response.status_code == 404:
+            print("Producto no encontrado.")
+        else:
+            print(f"Error HTTP: {http_err}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"Error en la solicitud: {req_err}")
+    except json.JSONDecodeError:
+        print("Producto no encontrado.")
+    except Exception as err:
+        print(f"Ha ocurrido un error inesperado: {err}")
+
     
 def AddProduct():
     url = 'https://fakestoreapi.com/products'
@@ -91,14 +105,31 @@ def DeleteProduct():
     print("-----------------------")
     
     product_id = input("Ingrese el ID del producto que desea eliminar: ")
-
     url = f"{url_base}/{product_id}"
-    response = requests.delete(url)
-    
-    if response.status_code == 200:
-        print("Producto eliminado correctamente")
-    else:
-        print("Hubo un error al eliminar el producto", response.status_code)
+
+    try:
+        # Obtener el producto primero para verificar su existencia
+        check_response = requests.get(url)
+        if check_response.status_code == 404:
+            print("El producto no existe, no se puede eliminar.")
+            return
+
+        # Verificar si la respuesta no está vacía (producto existe)
+        if check_response.text:
+            # Intentar eliminar el producto
+            response = requests.delete(url)
+            if response.status_code == 200 or response.status_code == 204:
+                print("Producto eliminado correctamente.")
+            else:
+                print("Hubo un error al eliminar el producto:", response.status_code)
+        else:
+            print("Producto no encontrado, no se puede eliminar.")
+    except requests.exceptions.HTTPError as http_err:
+        print(f"Error HTTP: {http_err}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"Error en la solicitud: {req_err}")
+    except Exception as err:
+        print(f"Ha ocurrido un error inesperado: {err}")
 
 
 def mostrar_menu():
@@ -130,5 +161,4 @@ while True:
         break
     else:
         print("Opción no válida, por favor intenta de nuevo.")
-
 
