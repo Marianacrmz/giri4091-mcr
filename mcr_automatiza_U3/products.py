@@ -17,7 +17,7 @@ def GetProduct():
     try:
         url = f"{url_base}/{product_id}"
         response = requests.get(url)
-        response.raise_for_status()  # Lanza una excepción para códigos de estado 4xx/5xx
+        response.raise_for_status()  
         
         if response.text:  # Verifica si la respuesta no está vacía
             producto = response.json()
